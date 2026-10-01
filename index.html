@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Orçamento Familiar">
+<title>Orçamento Familiar</title>
+<style>
+:root{--bg:#f3f4f6;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#2563eb;--green:#16a34a;--red:#dc2626;--amber:#d97706;--shadow:0 8px 24px rgba(15,23,42,.07)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+header{padding:calc(18px + env(safe-area-inset-top)) 18px 18px;background:#111827;color:white;position:sticky;top:0;z-index:10}
+.headerrow{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:24px;font-weight:800}.subtitle{font-size:13px;color:#cbd5e1;margin-top:3px}
+.month{background:#1f2937;border:1px solid #374151;color:white;border-radius:12px;padding:9px 10px;font-size:14px}
+main{max-width:900px;margin:auto;padding:16px 14px calc(90px + env(safe-area-inset-bottom))}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+.label{font-size:13px;color:var(--muted)}.value{font-size:25px;font-weight:800;margin-top:6px}.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--accent)}
+.section{margin-top:18px}.section h2{font-size:18px;margin:0 0 10px}.row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
+.cat{display:flex;align-items:center;gap:10px}.icon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#eff6ff;font-size:18px}
+.bar{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-top:7px}.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}button{border:0;border-radius:13px;padding:13px 12px;font-weight:700;font-size:14px;background:var(--accent);color:white}button.secondary{background:#e5e7eb;color:#111827}button.danger{background:#fee2e2;color:#991b1b}
+.form{display:grid;gap:10px}input,select{width:100%;padding:13px;border:1px solid #d1d5db;border-radius:12px;background:white;font-size:16px;color:var(--text)}
+.bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));z-index:20}
+.nav{max-width:900px;margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.nav button{background:transparent;color:#6b7280;padding:9px 4px}.nav button.active{color:var(--accent);background:#eff6ff}
+.small{font-size:12px;color:var(--muted)}.hidden{display:none}.empty{text-align:center;color:var(--muted);padding:20px}
+@media(min-width:700px){.cards{grid-template-columns:repeat(4,1fr)}main{padding-top:24px}.actions{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="headerrow">
+    <div><div class="title">Orçamento Familiar</div><div class="subtitle">Gestão simples do orçamento mensal</div></div>
+    <input id="month" class="month" type="month">
+  </div>
+</header>
+
+<main>
+<section id="dashboard">
+  <div class="cards">
+    <div class="card"><div class="label">Receitas</div><div id="income" class="value green">0,00 €</div></div>
+    <div class="card"><div class="label">Despesas</div><div id="expense" class="value red">0,00 €</div></div>
+    <div class="card"><div class="label">Saldo</div><div id="balance" class="value blue">0,00 €</div></div>
+    <div class="card"><div class="label">Poupança</div><div id="saving" class="value">0,00 €</div></div>
+  </div>
+
+  <div class="section card">
+    <h2>Resumo do mês</h2>
+    <div class="row"><span>Taxa de poupança</span><strong id="rate">0%</strong></div>
+    <div class="row"><span>Maior categoria</span><strong id="topcat">—</strong></div>
+  </div>
+
+  <div class="section card">
+    <h2>Despesas por categoria</h2>
+    <div id="categories"></div>
+  </div>
+
+  <div class="section card">
+    <h2>Ações rápidas</h2>
+    <div class="actions">
+      <button onclick="show('transactions')">+ Movimento</button>
+      <button class="secondary" onclick="show('budget')">Definir orçamento</button>
+      <button class="secondary" onclick="exportData()">Exportar dados</button>
+    </div>
+  </div>
+</section>
+
+<section id="transactions" class="hidden">
+  <div class="card">
+    <h2>Novo movimento</h2>
+    <div class="form">
+      <select id="type"><option value="expense">Despesa</option><option value="income">Receita</option></select>
+      <input id="desc" placeholder="Descrição (ex.: Supermercado)">
+      <input id="amount" type="number" inputmode="decimal" step="0.01" placeholder="Valor (€)">
+      <select id="category">
+        <option>Habitação</option><option>Alimentação</option><option>Transportes</option><option>Saúde</option>
+        <option>Educação</option><option>Lazer</option><option>Seguros</option><option>Comunicações</option>
+        <option>Compras</option><option>Outros</option>
+      </select>
+      <button onclick="addTransaction()">Guardar movimento</button>
+    </div>
+  </div>
+  <div class="section card"><h2>Movimentos</h2><div id="list"></div></div>
+</section>
+
+<section id="budget" class="hidden">
+  <div class="card">
+    <h2>Orçamento por categoria</h2>
+    <p class="small">Define limites mensais. Os valores ficam guardados neste dispositivo.</p>
+    <div id="budgetForm"></div>
+  </div>
+</section>
+
+<section id="settings" class="hidden">
+  <div class="card">
+    <h2>Dados da aplicação</h2>
+    <p class="small">Os dados são guardados localmente no Safari através do armazenamento do navegador.</p>
+    <div class="actions">
+      <button onclick="exportData()">Exportar</button>
+      <button class="danger" onclick="clearMonth()">Apagar mês</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<div class="bottom"><div class="nav">
+  <button id="n-dashboard" class="active" onclick="show('dashboard')">📊<br>Dashboard</button>
+  <button id="n-transactions" onclick="show('transactions')">💶<br>Movimentos</button>
+  <button id="n-budget" onclick="show('budget')">🎯<br>Orçamento</button>
+</div></div>
+
+<script>
+const cats=["Habitação","Alimentação","Transportes","Saúde","Educação","Lazer","Seguros","Comunicações","Compras","Outros"];
+const icons={"Habitação":"🏠","Alimentação":"🛒","Transportes":"🚗","Saúde":"❤️","Educação":"📚","Lazer":"🎮","Seguros":"🛡️","Comunicações":"📱","Compras":"🛍️","Outros":"📦"};
+let data=JSON.parse(localStorage.getItem("orcamentoFamiliar")||"{}");
+let month=new Date().toISOString().slice(0,7);
+document.getElementById("month").value=month;
+document.getElementById("month").addEventListener("change",e=>{month=e.target.value;render()});
+function key(){return month}
+function get(){if(!data[key()])data[key()]={transactions:[],budgets:{}};return data[key()]}
+function save(){localStorage.setItem("orcamentoFamiliar",JSON.stringify(data));render()}
+function euro(n){return Number(n||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"})}
+function show(id){
+  ["dashboard","transactions","budget","settings"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id));
+  ["dashboard","transactions","budget"].forEach(x=>document.getElementById("n-"+x)?.classList.toggle("active",x===id));
+  render();
+}
+function addTransaction(){
+  const d=document.getElementById("desc").value.trim(), a=parseFloat(document.getElementById("amount").value);
+  if(!d||!a||a<0)return alert("Preenche a descrição e um valor válido.");
+  const g=get();g.transactions.push({id:Date.now(),type:document.getElementById("type").value,desc:d,amount:a,category:document.getElementById("category").value});
+  document.getElementById("desc").value="";document.getElementById("amount").value="";save();show("transactions");
+}
+function removeTx(id){get().transactions=get().transactions.filter(x=>x.id!==id);save()}
+function render(){
+ const g=get(), ts=g.transactions;
+ const inc=ts.filter(x=>x.type==="income").reduce((s,x)=>s+x.amount,0);
+ const exp=ts.filter(x=>x.type==="expense").reduce((s,x)=>s+x.amount,0);
+ const bal=inc-exp;
+ document.getElementById("income").textContent=euro(inc);document.getElementById("expense").textContent=euro(exp);
+ document.getElementById("balance").textContent=euro(bal);document.getElementById("saving").textContent=euro(Math.max(0,bal));
+ document.getElementById("rate").textContent=(inc?((Math.max(0,bal)/inc)*100).toFixed(1):0)+"%";
+ let sums=cats.map(c=>[c,ts.filter(x=>x.type==="expense"&&x.category===c).reduce((s,x)=>s+x.amount,0)]);
+ let top=sums.slice().sort((a,b)=>b[1]-a[1])[0];document.getElementById("topcat").textContent=top&&top[1]?top[0]:"—";
+ document.getElementById("categories").innerHTML=sums.map(([c,v])=>{let budget=g.budgets[c]||0,pct=budget?Math.min(100,v/budget*100):0;return `<div class="row"><div style="width:100%"><div class="cat"><span class="icon">${icons[c]}</span><span>${c}</span><strong style="margin-left:auto">${euro(v)}</strong></div>${budget?`<div class="bar"><i style="width:${pct}%"></i></div><div class="small">Orçamento: ${euro(budget)}</div>`:""}</div></div>`}).join("");
+ document.getElementById("list").innerHTML=ts.length?ts.slice().reverse().map(x=>`<div class="row"><div><strong>${x.desc}</strong><div class="small">${x.category} · ${x.type==="income"?"Receita":"Despesa"}</div></div><div style="display:flex;align-items:center;gap:10px"><strong class="${x.type==="income"?"green":"red"}">${x.type==="income"?"+":"-"}${euro(x.amount)}</strong><button class="danger" style="padding:7px 9px" onclick="removeTx(${x.id})">×</button></div></div>`).join(""):'<div class="empty">Ainda não existem movimentos neste mês.</div>';
+ document.getElementById("budgetForm").innerHTML=cats.map(c=>`<div class="row"><span>${icons[c]} ${c}</span><input style="max-width:130px" type="number" inputmode="decimal" step="0.01" placeholder="0 €" value="${g.budgets[c]||""}" onchange="setBudget('${c}',this.value)"></div>`).join("");
+}
+function setBudget(c,v){get().budgets[c]=parseFloat(v)||0;save()}
+function clearMonth(){if(confirm("Apagar todos os dados deste mês?")){data[month]={transactions:[],budgets:{}};save()}}
+function exportData(){
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="orcamento-familiar-dados.json";a.click();URL.revokeObjectURL(url)
+}
+render();
+</script>
+</body>
+</html>
